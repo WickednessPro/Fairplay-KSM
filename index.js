@@ -7,6 +7,7 @@ var log = require('./log');
 const forge = require('node-forge');
 const NodeRSA = require('node-rsa');
 const crypto = require('crypto');
+const CryptoJS = require('crypto-js');
 
 app.post('/key', async (req, res) => {
     // Need response to be wrapped in `<ckc>text</ckc>` as per apple fairplay requirements
@@ -50,8 +51,10 @@ function GenCKC(playback) {
 function ParseSPCV1(playback, pub, priv) {
     var spcContainer = parseSPCContainer(playback);
     var spck = decryptSPCK(pub, priv, spcContainer.EncryptedAesKey);
-    console.log(spck)
-    printDebugSPC(spcContainer);
+    // console.log(spck)
+    // printDebugSPC(spcContainer);
+    // spcPayload = AESCBCDecrypt(spck, spcContainer.AesKeyIV, spcContainer.SPCPayload)
+    // console.log('spc CONTAINER::: ' + spcContainer.SPCPayload)
 }
 
 function parseSPCContainer(playback) {
@@ -75,7 +78,7 @@ function parseSPCContainer(playback) {
         SPCPayloadLength: SPCPayloadLength,
         SPCPayload: SPCPayload
     }
-    console.log(spcContainer)
+    // console.log(spcContainer)
     return spcContainer
 }
 
@@ -85,15 +88,14 @@ function decryptSPCK(pub, pri, enSpck) {
         return null;
     }
 
-    // TODO: Need to decrypt the SPCK using private Der certificate.
-    // The DER is derived from the private key.
-
-    // var privateDer = fs.readFileSync('ssl/private.der');
-    // const decryptedData = crypto.privateDecrypt(privateDer, enSpck)
-
-    // console.log('SPCK DATA:::')
-    // console.log(decryptedData)
+    // OAEPDecrypt
+    const decryptedData = crypto.privateDecrypt({
+        key: pri,
+        passphrase: Int8Array.from(' '),
+      },
+      Buffer.from(enSpck, "base64"));
     
+    return decryptedData.toString('hex');
     // ! Using the spc provided in the readme, it should return: dd7139eafaceed7cda9f25da8aa915ea
 }
 
@@ -126,8 +128,8 @@ function readPrivateKey() {
     if (!privatekey) {
         console.log('no private key');
     }
-    var priKey = decryptPrivateKey(privatekey, Int8Array.from(' '));
-    return priKey;
+    // var priKey = decryptPrivateKey(privatekey, Int8Array.from(' '));
+    return privatekey;
 }
 
 const convert = (from, to) => str => Buffer.from(str, from).toString(to)
@@ -144,10 +146,11 @@ function parsePublicCertificate(pbkey) {
     return cert;
 }
 
-function decryptPrivateKey(pvkey, passphrase) {
-    var privatekey = fs.readFileSync('ssl/privatekey.der');
-    return privatekey;    
-}
+// ! REMOVE DO NOT NEED
+// function decryptPrivateKey(pvkey, passphrase) {
+//     var privatekey = fs.readFileSync('ssl/dev_certificate.der');
+//     return privatekey;    
+// }
 
 const PORT = 8080;
 var httpsServer = http.createServer(app);

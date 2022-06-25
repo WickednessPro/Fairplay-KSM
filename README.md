@@ -60,9 +60,8 @@ Date: Thu, 23 Jun 2022 05:35:57 GMT
 ```
 ## TODO
 - [x]  Setup basics
-- [ ]  Decrypt SPCK
-- [ ]  Generate CKC
-- [ ]  Return CKC
+- [x]  Decrypt SPCK
+- [ ]  Generate CKC & Return final CKC
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
