@@ -8,6 +8,7 @@ const forge = require('node-forge');
 const NodeRSA = require('node-rsa');
 const crypto = require('crypto');
 const CryptoJS = require('crypto-js');
+var pkcs7 = require('pkcs7-padding');
 
 app.post('/key', async (req, res) => {
     // Need response to be wrapped in `<ckc>text</ckc>` as per apple fairplay requirements
@@ -53,8 +54,74 @@ function ParseSPCV1(playback, pub, priv) {
     var spck = decryptSPCK(pub, priv, spcContainer.EncryptedAesKey);
     // console.log(spck)
     // printDebugSPC(spcContainer);
-    // spcPayload = AESCBCDecrypt(spck, spcContainer.AesKeyIV, spcContainer.SPCPayload)
-    // console.log('spc CONTAINER::: ' + spcContainer.SPCPayload)
+    spcPayload = AESCBCDecrypt(spck, spcContainer.AesKeyIV, spcContainer.SPCPayload)
+    var ttlvs = parseTTLVs(spcPayload);
+
+    // console.log('=== SPC PayloadRow ===');
+    // console.log(spcPayload)
+    // console.log(spcContainer)
+
+}
+
+function parseTTLVs(spcPayload) {
+}
+
+function AESCBCDecrypt(key, iv, text) {
+    // const { algorithm, mode, padding, createDecryptStream } = require('cryptian')
+
+    var encInfo = [
+        {
+            key: key.toString('hex'),
+            keyLength: key.toString('hex').length,
+            kl: key.length,
+            k: key,
+            iv: iv.toString('hex'),
+            ivLength: iv.toString('hex').length,
+            ivl: iv.length,
+            i: iv
+        }
+    ]
+    console.table(encInfo);
+
+    // var nkey = key.toString('base64');
+    // var niv = iv.toString('base64');
+    // var ntext = text.toString('base64');
+    // const des = new algorithm.Des();
+    // des.setKey(nkey);
+
+    // const padder = new padding.Pkcs5(8);
+    // const cipher = new mode.cbc.Decipher(des, niv);
+    // console.log(cipher.transform(ntext).toString('hex'));
+
+    // const contents = Buffer.from(text, 'hex');
+    // const wiv = niv.slice(0, 16);
+    // // const textBytes = contents.slice(BLOCK_SIZE);
+
+    const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
+    decipher.setAutoPadding(false);
+    let decrypted = decipher.update(text, 'hex', 'hex');
+    decrypted += decipher.final('hex');
+    return decrypted;
+    // console.log(decrypted)
+    // console.log(decrypted.length)
+
+    // if (decrypted.length % 128 != 0) {
+    //     console.log('ciphertext is not a multiple of the block size')
+    // }
+
+
+    // console.log(padder.unpad(Buffer.from(cipher.transform(ntext)), 'hex').toString('hex'));
+
+    // var ntext = Buffer.from(text).toString('hex');
+    // var nkey = Buffer.from(key, 'hex');
+    // let padded = pkcs7.unpad(text);
+
+    // let cipher = crypto.createDecipheriv('aes-256-cbc', key, iv.toString('hex').slice(0, 16));
+    // cipher.update(padded, 'hex');
+    // cipher.setAutoPadding(false);
+    // let ivCiphertext = Buffer.concat([iv, cipher.update(padded), cipher.final()]);
+
+    // console.log(ivCiphertext.toString('hex'))
 }
 
 function parseSPCContainer(playback) {
@@ -95,7 +162,7 @@ function decryptSPCK(pub, pri, enSpck) {
       },
       Buffer.from(enSpck, "base64"));
     
-    return decryptedData.toString('hex');
+    return decryptedData;
     // ! Using the spc provided in the readme, it should return: dd7139eafaceed7cda9f25da8aa915ea
 }
 
@@ -133,6 +200,21 @@ function readPrivateKey() {
 }
 
 const convert = (from, to) => str => Buffer.from(str, from).toString(to)
+
+// function Int64ToString(bytes, isSigned) {
+//     const isNegative = isSigned && bytes.length > 0 && bytes[0] >= 0x80;
+//     const digits = [];
+//     bytes.forEach((byte, j) => {
+//       if(isNegative)
+//         byte = 0x100 - (j == bytes.length - 1 ? 0 : 1) - byte;
+//       for(let i = 0; byte > 0 || i < digits.length; i++) {
+//         byte += (digits[i] || 0) * 0x100;
+//         digits[i] = byte % 10;
+//         byte = (byte - digits[i]) / 10;
+//       }
+//     });
+//     return (isNegative ? '-' : '') + digits.reverse().join('');
+// }
 
 function ReadAsk() {
     var askkey = "d87ce7a26081de2e8eb8acef3a6dc179";
